@@ -6,21 +6,17 @@
 // define axes column name <-> label 
 var axisDefs = {
     // x asix
-    x: {
-        poverty: "In Poverty (%)",
-        ageMoe: "Age (Median)",
-        incomeMoe: "Household Income (Median)"
-    },
+    poverty: "In Poverty (%)",
+    age: "Age (Median)",
+    income: "Household Income (Median)",
     // y asix
-    y : {
     healthcare: "Lacks Healthcare (%)",
     smokes: "Smokes (%)",
     obesity: "Obeses (%)"
-    }
 }
 
 // prepare axes choices
-var xAxisNames = ["poverty", "ageMoe", "incomeMoe"];
+var xAxisNames = ["poverty", "age", "income"];
 var yAxisNames = ["healthcare", "smokes", "obesity"];
 
 // define current x and y axis
@@ -60,8 +56,8 @@ function resize() {
     // define margins
     var margin = {
         top: 40,
-        left: 80,
-        bottom: 60,
+        left: 100,
+        bottom: 85,
         right: 40
     };
 
@@ -114,13 +110,74 @@ function resize() {
                                      .attr("fill", "blue")
                                      .attr("opacity", ".5");
 
-        // Create group for x-axis labels
-        var labelsGroup = chartGroup.append("g")
-                                    .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + 20})`);
+        // create x axis labels
+        var xLabels = chartGroup.append("g")
+                                .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + 20})`);
         
-        labelsGroup.selectAll("text")
-                   .data()
+        xLabels.selectAll("text")
+                   .data(xAxisNames)
+                   .enter()
+                   .append("text")
+                   .attr("x", 0)
+                   .attr("y", (d, i) => i * 20 + 20)
+                   .attr("value", d => d)
+                   .classed("inactive", true)
+                   .text(d => axisDefs[d]);
 
+        // set current acitve label
+        xLabels.selectAll("text")
+                   .filter(function() {
+                        return d3.select(this).attr("value") == currentX; 
+                   })
+                   .classed("inactive", false)
+                   .classed("active", true);
+        
+        // create y axis labels
+        var yLabels = chartGroup.append("g")
+                                .attr("transform", `translate(-20, ${chartHeight /2}) rotate(-90)`);
+        
+        yLabels.selectAll("text")
+               .data(yAxisNames)
+               .enter()
+               .append("text")
+               .attr("x", 0)
+               .attr("y", (d, i) => -20 - i * 20)
+               .attr("value", d => d)
+               .classed("inactive", true)
+               .text(d => axisDefs[d]);
+        
+        // set current active label
+        yLabels.selectAll("text")
+               .filter(function() {
+                    return d3.select(this).attr("value") == currentY; 
+               })
+               .classed("inactive", false)
+               .classed("active", true);
+        
+        // add click event for both axes' labels
+        xLabels.selectAll("text")
+               .on("click", function() {
+                   var value = d3.select(this).attr("value");
+                   if (value === currentX) {
+                       return;
+                   }
+                   else {
+                       currentX = value;
+                       resize();
+                   }
+               });
+        
+        yLabels.selectAll("text")
+               .on("click", function() {
+                   var value = d3.select(this).attr("value");
+                   if (value === currentY) {
+                       return;
+                   }
+                   else {
+                       currentY = value;
+                       resize();
+                   }
+               });
     });
 }
 
@@ -145,16 +202,6 @@ function yScaleFunc(height, data) {
         .range([height, 0]);
     return yLinearScale;
 }
-
-// render circles
-function renderCircles(circlesGroup, newXScale, chosenXAxis) {
-
-    circlesGroup.transition()
-      .duration(1000)
-      .attr("cx", d => newXScale(d[chosenXAxis]));
-  
-    return circlesGroup;
-  }
 
 init();
 
