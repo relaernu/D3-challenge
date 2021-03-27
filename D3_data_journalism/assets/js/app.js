@@ -6,13 +6,17 @@
 // define axes column name <-> label 
 var axisDefs = {
     // x asix
-    poverty: "In Poverty (%)",
-    ageMoe: "Age (Median)",
-    incomeMoe: "Household Income (Median)",
+    x: {
+        poverty: "In Poverty (%)",
+        ageMoe: "Age (Median)",
+        incomeMoe: "Household Income (Median)"
+    },
     // y asix
+    y : {
     healthcare: "Lacks Healthcare (%)",
     smokes: "Smokes (%)",
     obesity: "Obeses (%)"
+    }
 }
 
 // prepare axes choices
@@ -28,6 +32,15 @@ function init() {
     resize();
 }
 
+function changeSelection(xAxisName, yAxisName) {
+    if (xAxisName !== currentX) {
+        currentX = xAxisName;
+    }
+    if (yAxisName !== currentY) {
+        currentY = yAxisName;
+    }
+}
+
 function resize() {
     // empty area
     var svg = d3.select("#scatter").select("svg");
@@ -35,18 +48,20 @@ function resize() {
         svg.remove();
     }
 
-    // get current window rect
-    var svgHeight = window.innerHeight;
-    var svgWidth = window.innerWidth;
-    // var svgHeight = window.innerHeight;
-    // var svgWidth = document.getElementById("scatter").width;
+    // get the empty space between header and footer
+    var svgHeight = window.innerHeight - $("#header").outerHeight() - $("#footer").outerHeight() - 20;
 
-    console.log(svgWidth);
+    // get the div column width as svg width
+    var svgWidth = $("#scatterCol").outerWidth();
+
+    // console.log(svgWidth);
+    // console.log(svgHeight);
+
     // define margins
     var margin = {
-        top: 20,
-        left: 40,
-        bottom: 20,
+        top: 40,
+        left: 80,
+        bottom: 60,
         right: 40
     };
 
@@ -67,42 +82,80 @@ function resize() {
     // load data and draw
     d3.csv("/assets/data/data.csv").then(function(data) {
 
+        data.forEach(function(d){
+            d[currentX] = +d[currentX];
+            d[currentY] = +d[currentY];
+        })
+
         // prepare axes
-        var xAxis = d3.axisBottom(xScale(chartWidth, data, currentX));
-        var yAxis = d3.axisLeft(yScale(chartHeight, data, currentY));
+        var xScale = xScaleFunc(chartWidth, data);
+        var yScale = yScaleFunc(chartHeight, data);
+
+        var xAxis = d3.axisBottom(xScale);
+        var yAxis = d3.axisLeft(yScale);
 
         // draw x axis
         chartGroup.append("g")
                   .attr("transform", `translate(0, ${chartHeight})`)
                   .call(xAxis);
-                
+        
+        // draw y axis
         chartGroup.append("g")
                   .call(yAxis);
+
+        // draw data point
+        var circlesGroup = chartGroup.selectAll("circle")
+                                     .data(data)
+                                     .enter()
+                                     .append("circle")
+                                     .attr("cx", d => xScale(d[currentX]))
+                                     .attr("cy", d => yScale(d[currentY]))
+                                     .attr("r", 20)
+                                     .attr("fill", "blue")
+                                     .attr("opacity", ".5");
+
+        // Create group for x-axis labels
+        var labelsGroup = chartGroup.append("g")
+                                    .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + 20})`);
+        
+        labelsGroup.selectAll("text")
+                   .data()
+
     });
 }
 
 // create scales for x Axis
-function xScale(width, data, xAxisName) {
+function xScaleFunc(width, data) {
     var xLinearScale = d3.scaleLinear()
         .domain([
-            d3.min(data, d => d[xAxisName]),
-            d3.max(data, d => d[xAxisName])
+            d3.min(data, d => d[currentX]),
+            d3.max(data, d => d[currentX])
         ])
         .range([0, width]);
     return xLinearScale;
 }
 
 // create scales for y Axis
-function yScale(height, data, yAxisName) {
+function yScaleFunc(height, data) {
     var yLinearScale = d3.scaleLinear()
         .domain([
-            d3.min(data, d => d[yAxisName]),
-            d3.max(data, d => d[yAxisName])
+            d3.min(data, d => d[currentY]),
+            d3.max(data, d => d[currentY])
         ])
         .range([height, 0]);
     return yLinearScale;
 }
 
-init(xAxisNames[0], yAxisNames[0]);
+// render circles
+function renderCircles(circlesGroup, newXScale, chosenXAxis) {
+
+    circlesGroup.transition()
+      .duration(1000)
+      .attr("cx", d => newXScale(d[chosenXAxis]));
+  
+    return circlesGroup;
+  }
+
+init();
 
 d3.select(window).on("resize", resize);
