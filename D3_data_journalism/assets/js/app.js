@@ -28,14 +28,14 @@ function init() {
     resize();
 }
 
-function changeSelection(xAxisName, yAxisName) {
-    if (xAxisName !== currentX) {
-        currentX = xAxisName;
-    }
-    if (yAxisName !== currentY) {
-        currentY = yAxisName;
-    }
-}
+// function changeSelection(xAxisName, yAxisName) {
+//     if (xAxisName !== currentX) {
+//         currentX = xAxisName;
+//     }
+//     if (yAxisName !== currentY) {
+//         currentY = yAxisName;
+//     }
+// }
 
 function resize() {
     // empty area
@@ -99,17 +99,49 @@ function resize() {
         chartGroup.append("g")
                   .call(yAxis);
 
-        // draw data point
-        var circlesGroup = chartGroup.selectAll("circle")
-                                     .data(data)
-                                     .enter()
-                                     .append("circle")
-                                     .attr("cx", d => xScale(d[currentX]))
-                                     .attr("cy", d => yScale(d[currentY]))
-                                     .attr("r", 20)
-                                     .attr("fill", "blue")
-                                     .attr("opacity", ".5");
+        // put text in circle before drawing circles
+        var textGroup = chartGroup.append("g")
+                                  .attr("transform", "translate(-9,6)");
+                                  
+        var texts = textGroup.selectAll("text")
+                             .data(data)
+                             .enter()
+                             .append("text")
+                             .attr("x", d => xScale(d[currentX]))
+                             .attr("y", d => yScale(d[currentY]))
+                             .classed("text-monospace font-weight-bold", true)
+                             .text(d => d.abbr);
 
+        // draw data point circles
+        var circlesGroup = chartGroup.append("g")
+        var circles = circlesGroup.selectAll("circle")
+                                  .data(data)
+                                  .enter()
+                                  .append("circle")
+                                  .attr("cx", d => xScale(d[currentX]))
+                                  .attr("cy", d => yScale(d[currentY]))
+                                  .attr("r", 12)
+                                  .attr("fill", "blue")
+                                  .attr("opacity", ".5")
+                                  .style("stroke", "black");
+
+        // *************************** create tips **************************
+        var toolTip = d3.tip()
+                        .attr("class", "d3-tip")
+                        .offset([0, -60])
+                        .html(function (d) {
+                            return (`${d.state}<br>${currentX}:${d[currentX]}<br>${currentY}:${d[currentY]}`);
+                        });
+
+        circles.call(toolTip);
+
+        circles.on("mouseover", function(data) {
+            toolTip.show(data);
+        })
+        .on("mouseout", function(data) {
+            toolTip.hide(data);
+        });
+        // *************************** create labels ************************
         // create x axis labels
         var xLabels = chartGroup.append("g")
                                 .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + 20})`);
@@ -178,6 +210,7 @@ function resize() {
                        resize();
                    }
                });
+        
     });
 }
 
