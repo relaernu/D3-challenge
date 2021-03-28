@@ -3,6 +3,7 @@
 //     return d;
 // });
 
+// *****************   define some object and array for later use  *************************
 var suffix = {
     poverty: "%",
     age: "",
@@ -41,21 +42,15 @@ var yAxisNames = ["healthcare", "smokes", "obesity"];
 var currentX = xAxisNames[0];
 var currentY = yAxisNames[0];
 
-// initial load 
+// **************  initial load ********************
 function init() {
     resize();
 }
 
-// function changeSelection(xAxisName, yAxisName) {
-//     if (xAxisName !== currentX) {
-//         currentX = xAxisName;
-//     }
-//     if (yAxisName !== currentY) {
-//         currentY = yAxisName;
-//     }
-// }
-
+// ************** main function ********************
 function resize() {
+
+    // ****************** prepare svg location & size ***********************
     // empty area
     var svg = d3.select("#scatter").select("svg");
     if (!svg.empty()) {
@@ -67,9 +62,6 @@ function resize() {
 
     // get the div column width as svg width
     var svgWidth = $("#scatterCol").outerWidth();
-
-    // console.log(svgWidth);
-    // console.log(svgHeight);
 
     // define margins
     var margin = {
@@ -94,9 +86,10 @@ function resize() {
     var chartGroup = svg.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
+    // ****************** load data and draw ***********************
     // load data and draw
     d3.csv("./assets/data/data.csv").then(function(data) {
-
+        // convert data to int
         data.forEach(function(d){
             d[currentX] = +d[currentX];
             d[currentY] = +d[currentY];
@@ -105,7 +98,6 @@ function resize() {
         // prepare axes
         var xScale = xScaleFunc(chartWidth, data);
         var yScale = yScaleFunc(chartHeight, data);
-
         var xAxis = d3.axisBottom(xScale);
         var yAxis = d3.axisLeft(yScale);
 
@@ -113,50 +105,54 @@ function resize() {
         chartGroup.append("g")
                   .attr("transform", `translate(0, ${chartHeight})`)
                   .transition()
-                  .duration(1000)
+                  .duration(500)
                   .call(xAxis);
         
         // draw y axis
         chartGroup.append("g")
                   .transition()
-                  .duration(1000)
+                  .duration(500)
                   .call(yAxis);
-
         
+        // define circle radius and text size
         var radius = 16;
         
-        // put text in circle
-
+        // add a group element for the state circles and texts
         var statesGroup = chartGroup.append("g");
 
+        // add circle elements to the group
         var circles = statesGroup.selectAll("circle")
-                                     .data(data)
-                                     .enter()
-                                     .append("circle")
-                                     .attr("value", d => d.abbr)
-                                     .classed("stateCircle", true);
+                                  .data(data)
+                                  .enter()
+                                  .append("circle")
+                                  .attr("value", d => d.abbr)
+                                  .classed("stateCircle", true);
         
+        // add text elements to the group
         var texts = statesGroup.selectAll("text")
                                      .data(data)
                                      .enter()
                                      .append("text")
                                      .attr("value", d => d.abbr)
-                                     .classed("stateText text-monospace text-primary", true)
+                                     .classed("stateText text-monospace", true)
                                      .style("font-size", radius)
                                      .text(d => d.abbr);
 
-        texts.transition()
-             .duration(1000)
-             .attr("x", d => xScale(d[currentX]))
-             .attr("y", d => yScale(d[currentY]) + (radius-4)/2);
-
+        // draw circles with animation
         circles.transition()
                .duration(1000)
                .attr("cx", d => xScale(d[currentX]))
                .attr("cy", d => yScale(d[currentY]))
                .attr("r", radius);
 
+        // fill text to circle with animation
+        texts.transition()
+             .duration(1000)
+             .attr("x", d => xScale(d[currentX]))
+             .attr("y", d => yScale(d[currentY]) + (radius-4)/2);
+
         // *************************** create tips **************************
+        // define tip format
         var toolTip = d3.tip()
                         .attr("class", "d3-tip")
                         .offset([-10, 0])
@@ -168,15 +164,19 @@ function resize() {
 
         statesGroup.call(toolTip);
         
+        // set mouseover and mouseout event on circles
         circles.on("mouseover", function(data) {
-            toolTip.show(data);
+                d3.select(this)
+                  .style("stroke", "black");
+                toolTip.show(data);
             })
             .on("mouseout", function(data) {
-                    toolTip.hide(data);
+                d3.select(this)
+                  .style("stroke", "none");
+                toolTip.hide(data);
             });
 
-        // add tooltip to the text so don't need to be cursor on the edge of the circle to show tips
-        // texts.call(toolTip);
+        // set mouseover and mouseout event on text to dispatch those event on the circle
         texts.on("mouseover", function(data) {
             var value = d3.select(this).attr("value");
             statesGroup.selectAll("circle")
@@ -213,7 +213,7 @@ function resize() {
         // set current acitve label
         xLabels.selectAll("text")
                    .filter(function() {
-                        return d3.select(this).attr("value") == currentX; 
+                        return d3.select(this).attr("value") === currentX; 
                    })
                    .classed("inactive", false)
                    .classed("active", true);
@@ -232,18 +232,10 @@ function resize() {
                .classed("inactive aText", true)
                .text(d => axisDefs[d]);
         
-        // yLabels.transition()
-        //        .duration(1000)
-        //        .attr("x", 0)
-        //        .attr("y", (d, i) => -20 - i * 20)
-        //        .attr("value", d => d)
-        //        .classed("inactive aText", true)
-        //        .text(d => axisDefs[d]);
-        
         // set current active label
         yLabels.selectAll("text")
                .filter(function() {
-                    return d3.select(this).attr("value") == currentY; 
+                    return d3.select(this).attr("value") === currentY; 
                })
                .classed("inactive", false)
                .classed("active", true);
@@ -278,7 +270,8 @@ function resize() {
 
 // create scales for x Axis
 function xScaleFunc(width, data) {
-
+    // define padding pixels
+    var padding = 50;
     // get x scale
     var min = d3.min(data, d => d[currentX]);
     var max = d3.max(data, d => d[currentX]);
@@ -286,9 +279,9 @@ function xScaleFunc(width, data) {
                          .domain([min, max])
                          .range([0, width]);
 
-    // padding 50px 
-    var left = xLinearScale.invert(-50);
-    var right = xLinearScale.invert(width + 50);
+    // get the actual value for padding 50px to x axis on left & right
+    var left = xLinearScale.invert(-padding);
+    var right = xLinearScale.invert(width + padding);
 
     // reset scale with padding
     xLinearScale = d3.scaleLinear()
@@ -300,7 +293,8 @@ function xScaleFunc(width, data) {
 
 // create scales for y Axis
 function yScaleFunc(height, data) {
-
+    // define padding pixels
+    var padding = 50;
     // get y scale
     var min = d3.min(data, d => d[currentY]);
     var max = d3.max(data, d => d[currentY]);
@@ -308,15 +302,14 @@ function yScaleFunc(height, data) {
                          .domain([min, max])
                          .range([height, 0]);
 
-    // padding 50px
-    var top = yLinearScale.invert(height + 50);
-    var bottom = yLinearScale.invert(-50);
+    // get the actual value for padding 50px to the y scale on top & bottom
+    var top = yLinearScale.invert(height + padding);
+    var bottom = yLinearScale.invert(-padding);
 
     // reset scale with padding
     yLinearScale = d3.scaleLinear()
                      .domain([top, bottom])
                      .range([height, 0]);
-
 
     return yLinearScale;
 }
