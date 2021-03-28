@@ -122,23 +122,27 @@ function resize() {
                   .call(yAxis);
 
         // draw data point circles
-        var radius = 12;
+        var radius = 14;
 
         var circlesGroup = chartGroup.append("g")
         var circles = circlesGroup.selectAll("circle")
                                   .data(data)
                                   .enter()
                                   .append("circle")
-                                  .attr("cx", d => xScale(d[currentX]))
-                                  .attr("cy", d => yScale(d[currentY]))
-                                  .attr("r", radius)
-                                  .classed("stateCircle", true)
+                                //   .attr("cx", d => xScale(d[currentX]))
+                                //   .attr("cy", d => yScale(d[currentY]))
+                                //   .attr("r", radius)
+                                  .classed("stateCircle", true);
 
-        circles.transition().duration(1000)
+        circles.transition()
+               .duration(1000)
+               .attr("cx", d => xScale(d[currentX]))
+               .attr("cy", d => yScale(d[currentY]))
+               .attr("r", radius);
 
-        // put text in circle before drawing circles
+        // put text in circle
         var textGroup = chartGroup.append("g")
-                                  .attr("transform", "translate(-9,6)");
+                                  .attr("transform", `translate(0,${radius/2})`);
 
         var texts = textGroup.selectAll("text")
                              .data(data)
@@ -172,6 +176,15 @@ function resize() {
             toolTip.hide(data);
         });
 
+        // add tooltip to the text so don't need to be cursor on the edge of the circle to show tips
+        texts.call(toolTip);
+        texts.on("mouseover", function(data) {
+            toolTip.show(data);
+        })
+        .on("mouseout", function(data) {
+            toolTip.hide(data);
+        });
+
         // *************************** create labels ************************
         // create x axis labels
         var xLabels = chartGroup.append("g")
@@ -184,7 +197,7 @@ function resize() {
                    .attr("x", 0)
                    .attr("y", (d, i) => i * 20 + 20)
                    .attr("value", d => d)
-                   .classed("inactive", true)
+                   .classed("inactive aText", true)
                    .text(d => axisDefs[d]);
 
         // set current acitve label
@@ -206,8 +219,16 @@ function resize() {
                .attr("x", 0)
                .attr("y", (d, i) => -20 - i * 20)
                .attr("value", d => d)
-               .classed("inactive", true)
+               .classed("inactive aText", true)
                .text(d => axisDefs[d]);
+        
+        // yLabels.transition()
+        //        .duration(1000)
+        //        .attr("x", 0)
+        //        .attr("y", (d, i) => -20 - i * 20)
+        //        .attr("value", d => d)
+        //        .classed("inactive aText", true)
+        //        .text(d => axisDefs[d]);
         
         // set current active label
         yLabels.selectAll("text")
