@@ -3,6 +3,24 @@
 //     return d;
 // });
 
+var suffix = {
+    poverty: "%",
+    age: "",
+    income: "",
+    healthcare: "%",
+    smokes: "%",
+    obesity: "%"
+}
+
+var prefix = {
+    poverty: "",
+    age: "",
+    income: "$",
+    healthcare: "",
+    smokes: "",
+    obesity: ""
+}
+
 // define axes column name <-> label 
 var axisDefs = {
     // x asix
@@ -93,26 +111,19 @@ function resize() {
         // draw x axis
         chartGroup.append("g")
                   .attr("transform", `translate(0, ${chartHeight})`)
+                  .transition()
+                  .duration(1000)
                   .call(xAxis);
         
         // draw y axis
         chartGroup.append("g")
+                  .transition()
+                  .duration(1000)
                   .call(yAxis);
 
-        // put text in circle before drawing circles
-        var textGroup = chartGroup.append("g")
-                                  .attr("transform", "translate(-9,6)");
-                                  
-        var texts = textGroup.selectAll("text")
-                             .data(data)
-                             .enter()
-                             .append("text")
-                             .attr("x", d => xScale(d[currentX]))
-                             .attr("y", d => yScale(d[currentY]))
-                             .classed("text-monospace font-weight-bold", true)
-                             .text(d => d.abbr);
-
         // draw data point circles
+        var radius = 12;
+
         var circlesGroup = chartGroup.append("g")
         var circles = circlesGroup.selectAll("circle")
                                   .data(data)
@@ -120,17 +131,36 @@ function resize() {
                                   .append("circle")
                                   .attr("cx", d => xScale(d[currentX]))
                                   .attr("cy", d => yScale(d[currentY]))
-                                  .attr("r", 12)
-                                  .attr("fill", "blue")
-                                  .attr("opacity", ".5")
-                                  .style("stroke", "black");
+                                  .attr("r", radius)
+                                  .classed("stateCircle", true)
+
+        circles.transition().duration(1000)
+
+        // put text in circle before drawing circles
+        var textGroup = chartGroup.append("g")
+                                  .attr("transform", "translate(-9,6)");
+
+        var texts = textGroup.selectAll("text")
+                             .data(data)
+                             .enter()
+                             .append("text")
+                             .attr("x", d => xScale(d[currentX]))
+                             .attr("y", d => yScale(d[currentY]))
+                             //  .classed("text-monospace font-weight-bold", true)
+                             .classed("stateText text-monospace text-primary", true)
+                             .style("font-size", radius)
+                             .text(d => d.abbr);
+
+        texts.transition().duration(1000);
 
         // *************************** create tips **************************
         var toolTip = d3.tip()
                         .attr("class", "d3-tip")
-                        .offset([0, -60])
+                        .offset([-10, 0])
                         .html(function (d) {
-                            return (`${d.state}<br>${currentX}:${d[currentX]}<br>${currentY}:${d[currentY]}`);
+                            return (`${d.state}<br>
+                                     ${currentX}: ${prefix[currentX]}${d[currentX]}${suffix[currentX]}<br>
+                                     ${currentY}: ${prefix[currentY]}${d[currentY]}${suffix[currentY]}`);
                         });
 
         circles.call(toolTip);
@@ -141,6 +171,7 @@ function resize() {
         .on("mouseout", function(data) {
             toolTip.hide(data);
         });
+
         // *************************** create labels ************************
         // create x axis labels
         var xLabels = chartGroup.append("g")
