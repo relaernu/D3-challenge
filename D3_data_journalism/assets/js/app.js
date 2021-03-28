@@ -95,7 +95,7 @@ function resize() {
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     // load data and draw
-    d3.csv("/assets/data/data.csv").then(function(data) {
+    d3.csv("./assets/data/data.csv").then(function(data) {
 
         data.forEach(function(d){
             d[currentX] = +d[currentX];
